@@ -59,3 +59,24 @@ SELECT month
 FROM df
 GROUP BY 1
 ORDER BY 1
+
+-- 신규유저 Trend
+WITH df as (
+            SELECT first_visit_dt
+                , traffic_source
+                , user_id
+            FROM (
+                  SELECT cast(user_id as int64) as user_id
+                    , traffic_source
+                    , created_at
+                    , min(created_at) over (partition by cast(user_id as int64)) as first_visit_dt
+                  FROM `sql-study-420204.looker_ecommerce_dataset.events` 
+                  )
+            WHERE created_at = first_visit_dt
+            )
+
+SELECT format_datetime("%Y-%m", datetime_trunc(first_visit_dt,month)) as month
+  , traffic_source
+  , count(distinct user_id) as new_users_cnt
+FROM df
+GROUP BY 1,2

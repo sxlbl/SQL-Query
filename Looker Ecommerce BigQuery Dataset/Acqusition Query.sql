@@ -80,3 +80,27 @@ SELECT format_datetime("%Y-%m", datetime_trunc(first_visit_dt,month)) as month
   , count(distinct user_id) as new_users_cnt
 FROM df
 GROUP BY 1,2
+
+-- 월별 new repeat 유저 cnt, 비율
+
+WITH df as (
+            SELECT *
+              , case when month = first_visit_month then "new" else "repeat" end as new_or_repeat
+            FROM (
+                  SELECT cast(user_id as int64) as user_id
+                    , format_datetime("%Y-%m", (datetime_trunc(created_at, month))) as month
+                    , format_datetime("%Y-%m", first_value(datetime_trunc(created_at, month)) over (partition by cast(user_id as int64) order by datetime_trunc(created_at, month))) as first_visit_month
+                    , city
+                    , traffic_source
+                    , event_type
+                  FROM `sql-study-420204.looker_ecommerce_dataset.events` 
+                  )
+            )
+
+SELECT month
+  , count(distinct user_id) as user_cnt
+  , count(distinct case when new_or_repeat = "new" then user_id end) as new_user
+  , count(distinct case when new_or_repeat = "repeat" then user_id end) as repeat_user
+FROM df
+GROUP BY 1
+
